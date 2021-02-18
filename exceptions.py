@@ -2,5 +2,5 @@ class WhoisGetterError(Exception):
     pass
 
 
-class GettingWhoisTextError(WhoisGetterError):
+class ConnectTimeoutError(WhoisGetterError):
     pass

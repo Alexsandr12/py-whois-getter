@@ -2,7 +2,7 @@ import socket
 from typing import List, TypedDict, Dict
 
 from utils import encode_punycode
-from exceptions import GettingWhoisTextError
+from exceptions import ConnectTimeoutError
 
 
 Domain = str
@@ -11,26 +11,31 @@ WhoisText = str
 
 class RequestParamsBase(TypedDict):
     domain: str
-    whois_server: str
+    server: str
 
 
 class RequestParams(RequestParamsBase, total=False):
-    whois_port: int
+    port: int
 
 
 class Whois:
-    def __init__(self, whois_timeout: int = 10) -> None:
+    def __init__(self, whois_timeout: int = 5) -> None:
         self.whois_timeout = whois_timeout
 
     def get_domain_whois(
-        self, domain: Domain, whois_server: str, whois_port: int = 43
+        self, domain: Domain, server: str, port: int = 43
     ) -> WhoisText:
-        pass
+        return self._get_whois(domain, server, port)
 
     def get_domains_whois(
-        self, domains: List[RequestParams]
+        self, request_params: List[RequestParams]
     ) -> Dict[Domain, WhoisText]:
-        pass
+        return {
+            params["domain"]: self._get_whois(
+                params["domain"], params["server"], params.get("port", 43)
+            )
+            for params in request_params
+        }
 
     def get_domain_whois_authority(self, domain: Domain) -> WhoisText:
         pass
@@ -40,20 +45,23 @@ class Whois:
     ) -> Dict[Domain, WhoisText]:
         pass
 
-    def _get_whois(
-        self, domain: Domain, whois_server: str, whois_port: int
-    ) -> WhoisText:
+    def _get_whois(self, domain: Domain, server: str, port: int) -> WhoisText:
         domain_puny = encode_punycode(domain)
+
         response = bytes()
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(self.whois_timeout)
-            sock.connect((whois_server, whois_port))
-            sock.send(f"{domain_puny}\r\n".encode())
+            try:
+                sock.connect((server, port))
+                sock.send(f"{domain_puny}\r\n".encode())
+            except socket.timeout:
+                raise ConnectTimeoutError
+
             while True:
                 try:
                     data = sock.recv(4096)
                 except socket.timeout:
-                    raise GettingWhoisTextError
+                    raise ConnectTimeoutError
 
                 if data:
                     response += data

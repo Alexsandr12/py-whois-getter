@@ -54,7 +54,7 @@ class Whois:
     def get_domains_whois_authority(
         self, domains: List[Domain]
     ) -> Dict[Domain, WhoisText]:
-        pass
+        return {domain: self.get_domain_whois_authority(domain) for domain in domains}
 
     def _get_whois(self, domain: Domain, server: str, port: int) -> WhoisText:
         domain_puny = encode_punycode(domain)

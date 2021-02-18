@@ -1,7 +1,12 @@
+import socket
 from typing import List, TypedDict, Dict
 
+from utils import encode_punycode
+from exceptions import GettingWhoisTextError
 
-Domain, WhoisText = str
+
+Domain = str
+WhoisText = str
 
 
 class RequestParamsBase(TypedDict):
@@ -38,7 +43,24 @@ class Whois:
     def _get_whois(
         self, domain: Domain, whois_server: str, whois_port: int
     ) -> WhoisText:
-        pass
+        domain_puny = encode_punycode(domain)
+        response = bytes()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(self.whois_timeout)
+            sock.connect((whois_server, whois_port))
+            sock.send(f"{domain_puny}\r\n".encode())
+            while True:
+                try:
+                    data = sock.recv(4096)
+                except socket.timeout:
+                    raise GettingWhoisTextError
+
+                if data:
+                    response += data
+                else:
+                    break
+
+        return response.decode("utf-8", "replace")
 
 
 class Nameserver(TypedDict):

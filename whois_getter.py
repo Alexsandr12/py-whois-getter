@@ -39,3 +39,23 @@ class Whois:
         self, domain: Domain, whois_server: str, whois_port: int
     ) -> WhoisText:
         pass
+
+
+class Nameserver(TypedDict):
+    host: str
+    ipv4_addresses: List[str]
+    ipv6_addresses: List[str]
+
+
+class WhoisParser:
+    def __init__(self, whois_text: WhoisText):
+        self.whois_text = whois_text
+
+    def get_statuses(self) -> List[str]:
+        pass
+
+    def get_dates(self) -> Dict[str, str]:
+        pass
+
+    def get_nameservers(self) -> List[Nameserver]:
+        pass
